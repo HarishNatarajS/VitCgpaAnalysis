@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- IMPORTANT for mobile responsiveness -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Grade PDF Parser</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+      };
+    </script>
+  </head>
+  <body
+    class="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100"
+  >
+    <div class="max-w-6xl mx-auto py-6 px-3 sm:px-4">
+      <!-- Top bar: title + theme toggle -->
+      <div
+        class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6"
+      >
+        <h1 class="text-xl sm:text-2xl font-bold">
+          Grade History PDF <span class="text-sky-500">→</span> Editable Table
+          <span class="text-sky-500">→</span> CSV
+        </h1>
+
+        <button
+          id="themeToggle"
+          type="button"
+          class="self-start sm:self-auto inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium rounded-full border border-slate-500/60 bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-600"
+        >
+          🌙 Dark
+        </button>
+      </div>
+
+      <!-- Upload form -->
+      <div
+        class="mb-6 rounded-xl border border-slate-300 bg-white/90 p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between dark:bg-slate-800/70 dark:border-slate-700"
+      >
+        <form
+          method="post"
+          enctype="multipart/form-data"
+          class="flex flex-col gap-3 sm:flex-row sm:items-center"
+        >
+          <label class="text-sm font-medium flex-1">
+            <span class="block mb-1 text-slate-700 dark:text-slate-200">
+              Upload Grade PDF or CSV
+            </span>
+            <input
+              type="file"
+              name="file"
+              accept=".pdf,application/pdf,.csv,text/csv"
+              required
+              class="block w-full text-sm text-slate-800 dark:text-slate-200 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-sky-600 file:text-white hover:file:bg-sky-500"
+            />
+          </label>
+          <button
+            type="submit"
+            class="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold text-white shadow-sm transition-colors"
+          >
+            📄 Upload &amp; Parse
+          </button>
+        </form>
+
+        <p class="text-xs text-slate-500 dark:text-slate-400">
+          Tip: After parsing, double-tap any cell to toggle edit mode.
+        </p>
+      </div>
+
+      {% if records %}
+      <hr class="border-slate-200 dark:border-slate-700 mb-4" />
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between">
+        <div class="mb-3 md:mb-0">
+          <h2 class="text-lg sm:text-xl font-semibold mb-1">
+            Parsed &amp; Editable Data
+          </h2>
+          <p class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
+            📌 Double-tap a field to edit. Use ➕ to add rows and 🗑️ to remove
+            rows. Tap column headers to sort.
+          </p>
+        </div>
+
+        <!-- Column visibility filter -->
+        <div
+          class="mb-4 md:mb-0 rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-[11px] sm:text-xs dark:bg-slate-800/70 dark:border-slate-700"
+        >
+          <div class="font-semibold mb-1">Visible columns</div>
+          <div class="flex flex-wrap gap-x-3 gap-y-1">
+            <label class="inline-flex items-center gap-1">
+              <input
+                type="checkbox"
+                data-col-toggle="sl_no"
+                class="h-3 w-3 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                checked
+              />
+              <span>Sl.No</span>
+            </label>
+            <label class="inline-flex items-center gap-1">
+              <input
+                type="checkbox"
+                data-col-toggle="course_code"
+                class="h-3 w-3 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                checked
+              />
+              <span>Code</span>
+            </label>
+            <label class="inline-flex items-center gap-1">
+              <input
+                type="checkbox"
+                data-col-toggle="course_title"
+                class="h-3 w-3 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                checked
+              />
+              <span>Title</span>
+            </label>
+            <label class="inline-flex items-center gap-1">
+              <input
+                type="checkbox"
+                data-col-toggle="course_type"
+                class="h-3 w-3 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                checked
+              />
+              <span>Type</span>
+            </label>
+            <label class="inline-flex items-center gap-1">
+              <input
+                type="checkbox"
+                data-col-toggle="credits"
+                class="h-3 w-3 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                checked
+              />
+              <span>Credits</span>
+            </label>
+            <label class="inline-flex items-center gap-1">
+              <input
+                type="checkbox"
+                data-col-toggle="grade"
+                class="h-3 w-3 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                checked
+              />
+              <span>Grade</span>
+            </label>
+            <label class="inline-flex items-center gap-1">
+              <input
+                type="checkbox"
+                data-col-toggle="exam_month"
+                class="h-3 w-3 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                checked
+              />
+              <span>Exam Month</span>
+            </label>
+            <label class="inline-flex items-center gap-1">
+              <input
+                type="checkbox"
+                data-col-toggle="result_declared_on"
+                class="h-3 w-3 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                checked
+              />
+              <span>Result Date</span>
+            </label>
+            <label class="inline-flex items-center gap-1">
+              <input
+                type="checkbox"
+                data-col-toggle="course_option"
+                class="h-3 w-3 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                checked
+              />
+              <span>Option</span>
+            </label>
+            <label class="inline-flex items-center gap-1">
+              <input
+                type="checkbox"
+                data-col-toggle="course_distribution"
+                class="h-3 w-3 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                checked
+              />
+              <span>Distribution</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <form method="post" action="{{ url_for('download_csv') }}">
+        <div
+          class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700 mt-2"
+        >
+          <table
+            id="grades-table"
+            class="min-w-full text-[11px] sm:text-xs md:text-sm bg-white dark:bg-slate-900"
+          >
+            <thead class="bg-slate-100 dark:bg-slate-800/80">
+              <tr>
+                <th
+                  class="px-2 py-2 text-left font-semibold border-b border-slate-200 dark:border-slate-700 cursor-pointer select-none"
+                  data-col="sl_no"
+                  data-sort-col="sl_no"
+                >
+                  Sl.No
+                  <span class="inline-block text-[10px] opacity-60">⇅</span>
+                </th>
+                <th
+                  class="px-2 py-2 text-left font-semibold border-b border-slate-200 dark:border-slate-700 cursor-pointer select-none"
+                  data-col="course_code"
+                  data-sort-col="course_code"
+                >
+                  Course Code
+                  <span class="inline-block text-[10px] opacity-60">⇅</span>
+                </th>
+                <th
+                  class="px-2 py-2 text-left font-semibold border-b border-slate-200 dark:border-slate-700 cursor-pointer select-none"
+                  data-col="course_title"
+                  data-sort-col="course_title"
+                >
+                  Course Title
+                  <span class="inline-block text-[10px] opacity-60">⇅</span>
+                </th>
+                <th
+                  class="px-2 py-2 text-left font-semibold border-b border-slate-200 dark:border-slate-700 cursor-pointer select-none"
+                  data-col="course_type"
+                  data-sort-col="course_type"
+                >
+                  Course Type
+                  <span class="inline-block text-[10px] opacity-60">⇅</span>
+                </th>
+                <th
+                  class="px-2 py-2 text-left font-semibold border-b border-slate-200 dark:border-slate-700 cursor-pointer select-none"
+                  data-col="credits"
+                  data-sort-col="credits"
+                >
+                  Credits
+                  <span class="inline-block text-[10px] opacity-60">⇅</span>
+                </th>
+                <th
+                  class="px-2 py-2 text-left font-semibold border-b border-slate-200 dark:border-slate-700 cursor-pointer select-none"
+                  data-col="grade"
+                  data-sort-col="grade"
+                >
+                  Grade
+                  <span class="inline-block text-[10px] opacity-60">⇅</span>
+                </th>
+                <th
+                  class="px-2 py-2 text-left font-semibold border-b border-slate-200 dark:border-slate-700 cursor-pointer select-none"
+                  data-col="exam_month"
+                  data-sort-col="exam_month"
+                >
+                  Exam Month
+                  <span class="inline-block text-[10px] opacity-60">⇅</span>
+                </th>
+                <th
+                  class="px-2 py-2 text-left font-semibold border-b border-slate-200 dark:border-slate-700 cursor-pointer select-none"
+                  data-col="result_declared_on"
+                  data-sort-col="result_declared_on"
+                >
+                  Result Declared On
+                  <span class="inline-block text-[10px] opacity-60">⇅</span>
+                </th>
+                <th
+                  class="px-2 py-2 text-left font-semibold border-b border-slate-200 dark:border-slate-700 cursor-pointer select-none"
+                  data-col="course_option"
+                  data-sort-col="course_option"
+                >
+                  Course Option
+                  <span class="inline-block text-[10px] opacity-60">⇅</span>
+                </th>
+                <th
+                  class="px-2 py-2 text-left font-semibold border-b border-slate-200 dark:border-slate-700 cursor-pointer select-none"
+                  data-col="course_distribution"
+                  data-sort-col="course_distribution"
+                >
+                  Course Distribution
+                  <span class="inline-block text-[10px] opacity-60">⇅</span>
+                </th>
+                <th
+                  class="px-2 py-2 text-center font-semibold border-b border-slate-200 dark:border-slate-700"
+                >
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in records %}
+              <tr
+                data-index="{{ loop.index0 }}"
+                class="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/40"
+              >
+                <td class="px-2 py-1" data-col="sl_no">
+                  <input
+                    type="text"
+                    name="row-{{ loop.index0 }}-sl_no"
+                    value="{{ r.sl_no }}"
+                    class="w-full bg-white text-slate-900 border border-slate-300 rounded px-2 py-1 text-[11px] sm:text-xs outline-none dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700"
+                  />
+                </td>
+                <td class="px-2 py-1" data-col="course_code">
+                  <input
+                    type="text"
+                    name="row-{{ loop.index0 }}-course_code"
+                    value="{{ r.course_code }}"
+                    class="w-full bg-white text-slate-900 border border-slate-300 rounded px-2 py-1 text-[11px] sm:text-xs outline-none dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700"
+                  />
+                </td>
+                <td class="px-2 py-1" data-col="course_title">
+                  <input
+                    type="text"
+                    name="row-{{ loop.index0 }}-course_title"
+                    value="{{ r.course_title }}"
+                    class="w-full bg-white text-slate-900 border border-slate-300 rounded px-2 py-1 text-[11px] sm:text-xs outline-none dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700"
+                  />
+                </td>
+                <td class="px-2 py-1" data-col="course_type">
+                  <input
+                    type="text"
+                    name="row-{{ loop.index0 }}-course_type"
+                    value="{{ r.course_type }}"
+                    class="w-full bg-white text-slate-900 border border-slate-300 rounded px-2 py-1 text-[11px] sm:text-xs outline-none dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700"
+                  />
+                </td>
+                <td class="px-2 py-1" data-col="credits">
+                  <input
+                    type="text"
+                    name="row-{{ loop.index0 }}-credits"
+                    value="{{ r.credits }}"
+                    class="w-full bg-white text-slate-900 border border-slate-300 rounded px-2 py-1 text-[11px] sm:text-xs outline-none dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700"
+                  />
+                </td>
+                <td class="px-2 py-1" data-col="grade">
+                  <input
+                    type="text"
+                    name="row-{{ loop.index0 }}-grade"
+                    value="{{ r.grade }}"
+                    class="w-full bg-white text-slate-900 border border-slate-300 rounded px-2 py-1 text-[11px] sm:text-xs outline-none dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700"
+                  />
+                </td>
+                <td class="px-2 py-1" data-col="exam_month">
+                  <input
+                    type="text"
+                    name="row-{{ loop.index0 }}-exam_month"
+                    value="{{ r.exam_month }}"
+                    class="w-full bg-white text-slate-900 border border-slate-300 rounded px-2 py-1 text-[11px] sm:text-xs outline-none dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700"
+                  />
+                </td>
+                <td class="px-2 py-1" data-col="result_declared_on">
+                  <input
+                    type="text"
+                    name="row-{{ loop.index0 }}-result_declared_on"
+                    value="{{ r.result_declared_on }}"
+                    class="w-full bg-white text-slate-900 border border-slate-300 rounded px-2 py-1 text-[11px] sm:text-xs outline-none dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700"
+                  />
+                </td>
+                <td class="px-2 py-1" data-col="course_option">
+                  <input
+                    type="text"
+                    name="row-{{ loop.index0 }}-course_option"
+                    value="{{ r.course_option }}"
+                    class="w-full bg-white text-slate-900 border border-slate-300 rounded px-2 py-1 text-[11px] sm:text-xs outline-none dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700"
+                  />
+                </td>
+                <td class="px-2 py-1" data-col="course_distribution">
+                  <input
+                    type="text"
+                    name="row-{{ loop.index0 }}-course_distribution"
+                    value="{{ r.course_distribution }}"
+                    class="w-full bg-white text-slate-900 border border-slate-300 rounded px-2 py-1 text-[11px] sm:text-xs outline-none dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700"
+                  />
+                </td>
+                <td class="px-2 py-1 text-center">
+                  <button
+                    type="button"
+                    class="inline-flex items-center justify-center rounded-full bg-emerald-600 hover:bg-emerald-500 text-[11px] px-2 py-1 mr-1 text-white"
+                    title="Add row below"
+                    onclick="addRowBelow(this)"
+                  >
+                    ➕
+                  </button>
+                  <button
+                    type="button"
+                    class="inline-flex items-center justify-center rounded-full bg-rose-600 hover:bg-rose-500 text-[11px] px-2 py-1 text-white"
+                    title="Delete row"
+                    onclick="deleteRow(this)"
+                  >
+                    🗑️
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="flex flex-wrap gap-3 mt-4 items-center">
+          <button
+            type="button"
+            class="inline-flex items-center justify-center px-3 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-xs md:text-sm font-semibold text-white shadow-sm"
+            onclick="addRowAtEnd()"
+          >
+            ➕ Add row at end
+          </button>
+
+          <button
+            type="submit"
+            class="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs md:text-sm font-semibold text-white shadow-sm"
+          >
+            💾 Download as CSV
+          </button>
+
+          <span class="text-[11px] text-slate-500 dark:text-slate-400">
+            ✏️ Double-tap any cell to toggle edit mode.
+          </span>
+        </div>
+
+        <!-- CGPA panel -->
+        <div
+          class="mt-4 inline-flex flex-col gap-1 rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-sm dark:bg-slate-800/70 dark:border-slate-700"
+        >
+          <div class="font-semibold mb-1">CGPA (calculated)</div>
+          <div class="flex flex-wrap gap-4 sm:gap-6 text-xs md:text-sm">
+            <div>
+              Credits counted:
+              <span id="cgpa-total-credits" class="font-mono font-semibold"
+                >0.0</span
+              >
+            </div>
+            <div>
+              CGPA:
+              <span id="cgpa-value" class="font-mono font-semibold">0.00</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="mt-2 inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-sm"
+            onclick="calculateCgpa()"
+          >
+            🔢 Recalculate CGPA
+          </button>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+            Uses mapping: S=10, A=9, B=8, C=7, D=6, E=5, F/Nx=0 (only rows with
+            valid Credits &amp; Grade are counted).
+          </p>
+        </div>
+      </form>
+
+      <!-- Scripts that need records -->
+      <script>
+        // start from existing rows
+        let rowCount = {{ records|length }};
+
+        const fields = [
+          "sl_no",
+          "course_code",
+          "course_title",
+          "course_type",
+          "credits",
+          "grade",
+          "exam_month",
+          "result_declared_on",
+          "course_option",
+          "course_distribution",
+        ];
+
+        // Grade points mapping
+        const gradePoints = {
+          S: 10,
+          A: 9,
+          B: 8,
+          C: 7,
+          D: 6,
+          E: 5,
+          F: 0,
+          N1: 0,
+          N2: 0,
+          N3: 0,
+          N4: 0,
+        };
+
+        function attachDoubleClickEdit(input) {
+          input.readOnly = true;
+          input.classList.add("cursor-pointer");
+          input.addEventListener("dblclick", () => {
+            input.readOnly = !input.readOnly;
+            if (!input.readOnly) {
+              input.classList.remove("cursor-pointer");
+              input.classList.add("ring-2", "ring-emerald-500");
+              input.focus();
+            } else {
+              input.classList.add("cursor-pointer");
+              input.classList.remove("ring-2", "ring-emerald-500");
+            }
+          });
+        }
+
+        document
+          .querySelectorAll("#grades-table tbody input")
+          .forEach(attachDoubleClickEdit);
+
+        function createRow(index) {
+          const tr = document.createElement("tr");
+          tr.setAttribute("data-index", index);
+          tr.className =
+            "border-b border-slate-100 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/40";
+
+          fields.forEach((field) => {
+            const td = document.createElement("td");
+            td.className = "px-2 py-1";
+            td.setAttribute("data-col", field);
+            const input = document.createElement("input");
+            input.type = "text";
+            input.name = `row-${index}-${field}`;
+            input.className =
+              "w-full bg-white text-slate-900 border border-slate-300 rounded px-2 py-1 text-[11px] sm:text-xs outline-none dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700";
+            attachDoubleClickEdit(input);
+            td.appendChild(input);
+            tr.appendChild(td);
+          });
+
+          const tdActions = document.createElement("td");
+          tdActions.className = "px-2 py-1 text-center";
+
+          const btnAdd = document.createElement("button");
+          btnAdd.type = "button";
+          btnAdd.className =
+            "inline-flex items-center justify-center rounded-full bg-emerald-600 hover:bg-emerald-500 text-[11px] px-2 py-1 mr-1 text-white";
+          btnAdd.title = "Add row below";
+          btnAdd.textContent = "➕";
+          btnAdd.onclick = function () {
+            addRowBelow(btnAdd);
+          };
+
+          const btnDel = document.createElement("button");
+          btnDel.type = "button";
+          btnDel.className =
+            "inline-flex items-center justify-center rounded-full bg-rose-600 hover:bg-rose-500 text-[11px] px-2 py-1 text-white";
+          btnDel.title = "Delete row";
+          btnDel.textContent = "🗑️";
+          btnDel.onclick = function () {
+            deleteRow(btnDel);
+          };
+
+          tdActions.appendChild(btnAdd);
+          tdActions.appendChild(btnDel);
+          tr.appendChild(tdActions);
+
+          return tr;
+        }
+
+        function addRowBelow(button) {
+          const currentRow = button.closest("tr");
+          const tbody = document.querySelector("#grades-table tbody");
+          const newRow = createRow(rowCount++);
+          tbody.insertBefore(newRow, currentRow.nextSibling);
+          applyColumnVisibility();
+        }
+
+        function addRowAtEnd() {
+          const tbody = document.querySelector("#grades-table tbody");
+          const newRow = createRow(rowCount++);
+          tbody.appendChild(newRow);
+          applyColumnVisibility();
+        }
+
+        function deleteRow(button) {
+          const row = button.closest("tr");
+          row.remove();
+          calculateCgpa();
+        }
+
+        function calculateCgpa() {
+          let totalCredits = 0;
+          let totalPoints = 0;
+
+          document
+            .querySelectorAll("#grades-table tbody tr")
+            .forEach((tr) => {
+              const creditsInput = tr.querySelector(
+                'input[name$="-credits"]'
+              );
+              const gradeInput = tr.querySelector('input[name$="-grade"]');
+              if (!creditsInput || !gradeInput) return;
+
+              const c = parseFloat(creditsInput.value);
+              if (isNaN(c) || c <= 0) return;
+
+              let g = gradeInput.value.trim().toUpperCase();
+              if (!g) return;
+
+              if (g.startsWith("N")) g = "N1";
+
+              const gp = gradePoints[g];
+              if (gp === undefined) return;
+
+              totalCredits += c;
+              totalPoints += c * gp;
+            });
+
+          const cgpa = totalCredits > 0 ? totalPoints / totalCredits : 0;
+          document.getElementById("cgpa-total-credits").textContent =
+            totalCredits.toFixed(1);
+          document.getElementById("cgpa-value").textContent = cgpa.toFixed(2);
+        }
+
+        function applyColumnVisibility() {
+          document
+            .querySelectorAll("input[data-col-toggle]")
+            .forEach((checkbox) => {
+              const colKey = checkbox.getAttribute("data-col-toggle");
+              const visible = checkbox.checked;
+              const cells = document.querySelectorAll(
+                `[data-col="${colKey}"]`
+              );
+              cells.forEach((el) => {
+                el.style.display = visible ? "" : "none";
+              });
+            });
+        }
+
+        document
+          .querySelectorAll("input[data-col-toggle]")
+          .forEach((checkbox) => {
+            checkbox.addEventListener("change", applyColumnVisibility);
+          });
+
+        let currentSort = { col: null, dir: "asc" };
+
+        function compareValues(a, b, colKey, dir) {
+          if (colKey === "sl_no" || colKey === "credits") {
+            const na = parseFloat(a);
+            const nb = parseFloat(b);
+            if (isNaN(na) && isNaN(nb)) return 0;
+            if (isNaN(na)) return 1;
+            if (isNaN(nb)) return -1;
+            return dir === "asc" ? na - nb : nb - na;
+          }
+          const sa = String(a).toLowerCase();
+          const sb = String(b).toLowerCase();
+          if (sa < sb) return dir === "asc" ? -1 : 1;
+          if (sa > sb) return dir === "asc" ? 1 : -1;
+          return 0;
+        }
+
+        function sortByColumn(colKey) {
+          const tbody = document.querySelector("#grades-table tbody");
+          const rows = Array.from(tbody.querySelectorAll("tr"));
+
+          const newDir =
+            currentSort.col === colKey && currentSort.dir === "asc"
+              ? "desc"
+              : "asc";
+          currentSort = { col: colKey, dir: newDir };
+
+          rows.sort((rowA, rowB) => {
+            const cellA = rowA.querySelector(
+              `td[data-col="${colKey}"] input`
+            );
+            const cellB = rowB.querySelector(
+              `td[data-col="${colKey}"] input`
+            );
+            const va = cellA ? cellA.value : "";
+            const vb = cellB ? cellB.value : "";
+            return compareValues(va, vb, colKey, newDir);
+          });
+
+          rows.forEach((row) => tbody.appendChild(row));
+          calculateCgpa();
+        }
+
+        document
+          .querySelectorAll("th[data-sort-col]")
+          .forEach((th) => {
+            const colKey = th.getAttribute("data-sort-col");
+            th.addEventListener("click", () => sortByColumn(colKey));
+          });
+
+        calculateCgpa();
+        applyColumnVisibility();
+      </script>
+      {% endif %}
+
+      <!-- Theme toggle script -->
+      <script>
+        const themeToggleBtn = document.getElementById("themeToggle");
+
+        function applyTheme(theme) {
+          if (theme === "dark") {
+            document.documentElement.classList.add("dark");
+            themeToggleBtn.textContent = "☀️ Light";
+          } else {
+            document.documentElement.classList.remove("dark");
+            themeToggleBtn.textContent = "🌙 Dark";
+          }
+        }
+
+        const savedTheme =
+          localStorage.getItem("grade_theme") ||
+          (window.matchMedia &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light");
+
+        applyTheme(savedTheme);
+
+        themeToggleBtn.addEventListener("click", () => {
+          const isDark = document.documentElement.classList.contains("dark");
+          const next = isDark ? "light" : "dark";
+          localStorage.setItem("grade_theme", next);
+          applyTheme(next);
+        });
+      </script>
+    </div>
+  </body>
+</html>
